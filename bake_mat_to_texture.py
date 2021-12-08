@@ -52,7 +52,7 @@ def get_blend_folder():
 # ---- MAIN ----
 
 
-def main(context):
+def main(self, context):
     print("Running")
 
     folder_path = get_blend_folder()
@@ -80,7 +80,8 @@ def main(context):
     for obj in selected_objects:
         mats = obj.data.materials
         if len(mats) == 0:
-            raise Exception("Object %s has no materials", (obj.name))
+            self.report({'ERROR'}, "Object %s has no materials" % (obj.name))
+            return {"CANCELLED"}
 
     for obj in selected_objects:
         mesh = obj.data
@@ -120,8 +121,9 @@ def main(context):
     # img.show()
     img.save(folder_path + file_path, "PNG")
 
-    print("--- Finished baking id texture in %s seconds ---" % (time.time() - start_time))
+    self.report({'INFO'}, "Finished baking id texture in %s seconds" % (time.time() - start_time))
 
+    return {'FINISHED'}
 
 # ---- BLENDER ----
 
@@ -129,28 +131,31 @@ class NOTHKE_OT_mat2id_baker(bpy.types.Operator):
     """Bakes material colors to id texture without Cycles"""
     bl_idname = "object.mat2id_baker"
     bl_label = "mat2id baker"
+    bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
     def poll(cls, context):
         return context.active_object is not None
 
     def execute(self, context):
-        main(context)
-        return {'FINISHED'}
+        return main(self, context)
 
 # ---- REGISTRATION ----
 
+def menu_draw(self, context):
+    layout = self.layout
+    layout.operator("object.mat2id_baker", text="Mat2id Baker")
 
 def register():
     bpy.utils.register_class(NOTHKE_OT_mat2id_baker)
-
+    bpy.types.VIEW3D_MT_object_apply.append(menu_draw)
 
 def unregister():
     bpy.utils.unregister_class(NOTHKE_OT_mat2id_baker)
-
+    bpy.types.VIEW3D_MT_object_apply.remove(menu_draw)
 
 if __name__ == "__main__":
     register()
 
 # test call
-bpy.ops.object.mat2id_baker()
+#bpy.ops.object.mat2id_baker()
