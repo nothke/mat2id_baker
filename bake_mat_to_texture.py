@@ -10,18 +10,21 @@ print(mats[0])
 # cache colors
 mat_colors = []
 
-for mat in mats:
+def get_material_color(mat):
     nodes = mat.node_tree.nodes
     principled = next(n for n in nodes if n.type == 'BSDF_PRINCIPLED')
     # Get the slot for 'base color'
     base_color = principled.inputs['Base Color']  # Or principled.inputs[0]
     # Get its default value (not the value from a possible link)
     value = base_color.default_value
-    print("Material: %s, color: %d, %d, %d" % (mat.name, value[0], value[1], value[2]))
-    # Translate as color
+    
     color = Color((value[0], value[1], value[2]))
     print(color)
     mat_colors.append(color)
+
+for mat in mats:
+    col = get_material_color(mat)
+    mat_colors.append(col)
 
 for poly in me.polygons:
     print("Polygon index: %d, length: %d" % (poly.index, poly.loop_total))
