@@ -1,3 +1,14 @@
+# By Nothke
+
+bl_info = {
+    "name": "Mat2id Baker",
+    "description": "Bakes material to id map without Cycles.",
+    "author": "Nothke",
+    "category": "Object",
+    "blender": (2, 80, 0),
+#    "location": "Object > Apply > Unity Rotation Fix",
+}
+
 import bpy
 from mathutils import Color
 
@@ -70,6 +81,8 @@ def main(context):
         if obj.type != "MESH":  # Skip non-mesh
             obj.select_set(False)
             continue
+
+        selected_objects.append(obj)
 
     # cache colors
     mat_colors = []
