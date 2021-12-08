@@ -1,13 +1,14 @@
 import bpy
 from mathutils import Color
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 import time
 
 # ---- PROPERTIES ----
 
-tex_size = 512
+tex_size = 256
 file_path = "baked_test.png"
+supersample = 2
 
 
 # ---- CODE ----
@@ -51,7 +52,11 @@ if len(mats) is 0:
     raise Exception("Object has no materials")
 
 # make image
-img = Image.new('RGB', (tex_size, tex_size), color='black')
+size = tex_size
+for i in range(supersample):
+    size *= 2
+
+img = Image.new('RGB', (size, size), color='black')
 draw = ImageDraw.Draw(img)
 
 # cache colors
@@ -74,9 +79,15 @@ for poly in me.polygons:
         #print("    Vertex: %d" % me.loops[loop_index].vertex_index)
         #print("    UV: %r" % uv_layer[loop_index].uv)
         uv = uv_layer[loop_index].uv
-        uvs.append((uv.x * tex_size, uv.y * tex_size))
+        uvs.append((uv.x * size, uv.y * size))
 
     draw.polygon(uvs, fill=col)
+
+#img_blurred = img.filter(ImageFilter.GaussianBlur(radius=6))
+#img = img_blurred
+#img = Image.blend(img, img_blurred, 0.5)
+
+img = img.resize((tex_size, tex_size), resample=Image.BICUBIC)
 
 #img.show()
 img.save(folder_path + file_path, "PNG")
