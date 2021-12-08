@@ -1,14 +1,8 @@
 import bpy
 from mathutils import Color
 
-me = bpy.context.object.data
-uv_layer = me.uv_layers.active.data
-
-mats = me.materials
-print(mats[0])
-
-# cache colors
-mat_colors = []
+from PIL import Image, ImageDraw
+import time
 
 def get_material_color(mat):
     nodes = mat.node_tree.nodes
@@ -20,7 +14,20 @@ def get_material_color(mat):
     
     color = Color((value[0], value[1], value[2]))
     print(color)
-    mat_colors.append(color)
+
+# MAIN
+
+start_time = time.time()
+
+# prepare
+me = bpy.context.object.data
+uv_layer = me.uv_layers.active.data
+
+mats = me.materials
+print(mats[0])
+
+# cache colors
+mat_colors = []
 
 for mat in mats:
     col = get_material_color(mat)
@@ -36,3 +43,5 @@ for poly in me.polygons:
     for loop_index in range(poly.loop_start, poly.loop_start + poly.loop_total):
         print("    Vertex: %d" % me.loops[loop_index].vertex_index)
         print("    UV: %r" % uv_layer[loop_index].uv)
+
+print("--- %s seconds ---" % (time.time() - start_time))
