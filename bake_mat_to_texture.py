@@ -59,15 +59,6 @@ def main(context):
 
     start_time = time.time()
 
-    # prepare
-    me = bpy.context.object.data
-    uv_layer = me.uv_layers.active.data
-
-    mats = me.materials
-
-    if len(mats) == 0:
-        raise Exception("Object has no materials")
-
     # make image
     size = tex_size
     for i in range(supersample):
@@ -77,6 +68,7 @@ def main(context):
     draw = ImageDraw.Draw(img)
 
     selected_objects = []
+    #print("Selected: " + str(len(selected_objects)))
     for obj in context.selected_objects:
         if obj.type != "MESH":  # Skip non-mesh
             obj.select_set(False)
@@ -84,29 +76,40 @@ def main(context):
 
         selected_objects.append(obj)
 
-    # cache colors
-    mat_colors = []
+    # validate first if all objects have materials
+    for obj in selected_objects:
+        mats = obj.data.materials
+        if len(mats) == 0:
+            raise Exception("Object %s has no materials", (obj.name))
 
-    for mat in mats:
-        col = get_material_color(mat)
-        mat_colors.append(
-            (int(col[0] * 255), int(col[1] * 255), int(col[2] * 255)))
+    for obj in selected_objects:
+        mesh = obj.data
+        mats = mesh.materials
+        uv_layer = mesh.uv_layers.active.data
 
-    # go through polygons and render them on the texture
-    for poly in me.polygons:
-        #print("Polygon index: %d, length: %d" % (poly.index, poly.loop_total))
-        #print("Loop index: %d" % (poly.material_index))
-        col = mat_colors[poly.material_index]
-        #print("Color: " + str(mat_colors[poly.material_index]))
+        # Cache material colors
+        mat_colors = []
 
-        uvs = []
-        for loop_index in range(poly.loop_start, poly.loop_start + poly.loop_total):
-            #print("    Vertex: %d" % me.loops[loop_index].vertex_index)
-            #print("    UV: %r" % uv_layer[loop_index].uv)
-            uv = uv_layer[loop_index].uv
-            uvs.append((uv.x * size, uv.y * size))
+        for mat in mats:
+            col = get_material_color(mat)
+            mat_colors.append(
+                (int(col[0] * 255), int(col[1] * 255), int(col[2] * 255)))
 
-        draw.polygon(uvs, fill=col)
+        # Render each polygon on the texture
+        for poly in obj.data.polygons:
+            #print("Polygon index: %d, length: %d" % (poly.index, poly.loop_total))
+            #print("Loop index: %d" % (poly.material_index))
+            col = mat_colors[poly.material_index]
+            #print("Color: " + str(mat_colors[poly.material_index]))
+
+            uvs = []
+            for loop_index in range(poly.loop_start, poly.loop_start + poly.loop_total):
+                #print("    Vertex: %d" % me.loops[loop_index].vertex_index)
+                #print("    UV: %r" % uv_layer[loop_index].uv)
+                uv = uv_layer[loop_index].uv
+                uvs.append((uv.x * size, uv.y * size))
+
+            draw.polygon(uvs, fill=col)
 
     #img_blurred = img.filter(ImageFilter.GaussianBlur(radius=6))
     #img = img_blurred
@@ -117,7 +120,7 @@ def main(context):
     # img.show()
     img.save(folder_path + file_path, "PNG")
 
-    print("--- Finished baking in %s seconds ---" % (time.time() - start_time))
+    print("--- Finished baking id texture in %s seconds ---" % (time.time() - start_time))
 
 
 # ---- BLENDER ----
