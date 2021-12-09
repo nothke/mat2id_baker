@@ -145,14 +145,15 @@ def main(self, context,
             # Slow! TODO: Convert to numpy array operators..?
             for y in range(size):
                 for x in range(size):
+                    bail = False
 
                     # skip if pixel is opaque
                     if arr[x, y, 3] > 5:
                         continue
 
                     # make this pixel the average of all neightbors that have alpha > 0
-                    #vals.clear()
-                    vals = []
+                    # vals.clear()
+                    #vals = []
 
                     startx = x-1 if x > 0 else 0
                     endx = x+2 if x < size-1 else size-1
@@ -160,11 +161,11 @@ def main(self, context,
                     starty = y-1 if y > 0 else 0
                     endy = y+2 if y < size-1 else size-1
 
-                    if x == 104 and y == 8:
-                        print("startx: %i, endx: %i", (startx, endx))
-                        print("starty: %i, endy: %i", (starty, endy))
-                        print(vals)
-                        print(str(len(arr[x, y])))
+                    # if x == 104 and y == 8:
+                    #     print("startx: %i, endx: %i", (startx, endx))
+                    #     print("starty: %i, endy: %i", (starty, endy))
+                    #     print(vals)
+                    #     print(str(len(arr[x, y])))
 
                     for yi in range(starty, endy):
                         for xi in range(startx, endx):
@@ -174,15 +175,24 @@ def main(self, context,
 
                             # if opaque, add pixel for averaging
                             if src[xi, yi, 3] > 5:
-                                vals.append(src[xi, yi])
+                                #vals.append(src[xi, yi])
+                                arr[x, y] = src[xi, yi]
+                                bail = True
+                                continue
+                        
+                        if bail:
+                            continue
+                    
+                    if bail:
+                        continue
 
-                    if len(vals) > 0:
-                        arr[x, y] = vals[0]  # numpy.average(vals)
-                        # force opaqufy
-                        arr[x, y, 3] = 255
+                    # if len(vals) > 0:
+                    #     arr[x, y] = vals[0]  # numpy.average(vals)
+                    #     # force opaqufy
+                    #     arr[x, y, 3] = 255
 
-                    if x == 104 and y == 8:
-                        print(vals)
+                    # if x == 104 and y == 8:
+                    #     print(vals)
 
         # converted for loop to numpy:
         # comp = numpy.logical_and(arr[:, :, 3] == 0, arr_max[:, :, 3] > 0)
