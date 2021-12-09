@@ -1,11 +1,11 @@
 # By Nothke
 
-import time
-from PIL import Image, ImageDraw, ImageFilter
-import numpy
-from numpy.core.fromnumeric import repeat
-from mathutils import Color
 import bpy
+from mathutils import Color
+from numpy.core.fromnumeric import repeat
+import numpy
+from PIL import Image, ImageDraw, ImageFilter
+import time
 bl_info = {
     "name": "Mat2id Baker",
     "description": "Bakes material to id map without Cycles.",
@@ -16,17 +16,13 @@ bl_info = {
 }
 
 
-# ---- PROPERTIES ----
-tex_size = 512
-file_path = "baked_test.png"
-supersample = 0
-
-
 # ---- CODE ----
 
 # static functions:
 
+
 def get_material_color(mat):
+    # TODO: Handle exceptions if material is not good here
     nodes = mat.node_tree.nodes
     principled = next(n for n in nodes if n.type == 'BSDF_PRINCIPLED')
     # Get the slot for 'base color'
@@ -53,7 +49,12 @@ def get_blend_folder():
 # ---- MAIN ----
 
 
-def main(self, context):
+def main(self, context,
+         tex_size=512,
+         supersample=0,
+         inflate_iterations=3,
+         custom_file_path=""):
+
     print("Running")
 
     folder_path = get_blend_folder()
@@ -132,34 +133,52 @@ def main(self, context):
     #      1, 1, 1,
     #      1, 1, 1), 1, 0))
 
-    img_max = img
+    if inflate_iterations > 0:
+        img_max = img
 
-    for i in range(5):
-        img_max = img_max.filter(ImageFilter.MaxFilter(3))
+        for i in range(inflate_iterations):
+            img_max = img_max.filter(ImageFilter.MaxFilter(3))
 
-    arr = numpy.array(img)
-    arr_max = numpy.array(img_max)
+        arr = numpy.array(img)
+        arr_max = numpy.array(img_max)
 
-    #comp = numpy.logical_and(arr[:, :, 3] == 0, arr_max[:, :, 3] > 0)
-    #arr[:,:] = comp * arr_max #bad?
+        # Slow! TODO: Convert to numpy array operators
+        for y in range(size):
+            for x in range(size):
+                # if alpha is 0 and inflated's alpha is more than 0
+                if arr[x, y, 3] == 0 and arr_max[x, y, 3] > 0:
+                    # set pixel to inflated
+                    arr[x, y] = arr_max[x, y]
+                    # set alpha to max
+                    arr[x, y, 3] = 255
 
-    for y in range(size):
-        for x in range(size):
-            if arr[x, y, 3] == 0 and arr_max[x, y, 3] > 0:
-                arr[x, y] = arr_max[x, y]
-                arr[x, y, 3] = 255
+        # converted for loop to numpy:
+        # comp = numpy.logical_and(arr[:, :, 3] == 0, arr_max[:, :, 3] > 0)
+        # arr[:,:] = comp * arr_max #bad?
 
-    arr[:,:,3] = 255
+        arr[:, :, 3] = 255
 
-    img = Image.fromarray(arr)
+        img = Image.fromarray(arr)
+    else:
+        # convert RGBA to RGB with PIL
+        img.load()
+        img_rgb = Image.new("RGB", img.size, (0, 0, 0))
+        img_rgb.paste(img, mask=img.split()[3])
+        img = img_rgb
 
     img = img.resize((tex_size, tex_size), resample=Image.BICUBIC)
 
     # img.show()
-    img.save(folder_path + file_path, "PNG")
+    file_path = ""
+    if custom_file_path:
+        file_path = custom_file_path
+    else:
+        file_path = folder_path + context.active_object.name + ".png"
 
-    self.report({'INFO'}, "Finished baking id texture in %s seconds" %
-                (time.time() - start_time))
+    img.save(file_path, "PNG")
+
+    self.report({'INFO'}, "Finished baking id texture to %s in %8.3f seconds" %
+                (file_path, time.time() - start_time))
 
     return {'FINISHED'}
 
@@ -167,17 +186,32 @@ def main(self, context):
 
 
 class NOTHKE_OT_mat2id_baker(bpy.types.Operator):
+    # Description
     """Bakes material colors to id texture without Cycles"""
     bl_idname = "object.mat2id_baker"
     bl_label = "mat2id baker"
     bl_options = {'REGISTER', 'UNDO'}
+
+    # Properties
+    prop_custom_file_path: bpy.props.StringProperty(
+        name="Custom File Path", default="", description="If empty, the path will be .blend_folder/active_object's_name.png")
+    prop_tex_size: bpy.props.IntProperty(name="Texture Size", default=512)
+    prop_supersampling: bpy.props.IntProperty(
+        name="Supersampling", default=0, description="Effectively supersampling-antialiasing. Doubles the size of the drawing texture that will get scaled down to Texture Size at the end.")
+    prop_inflate_iterations: bpy.props.IntProperty(
+        name="Inflate Iterations", default=3)
 
     @classmethod
     def poll(cls, context):
         return context.active_object is not None
 
     def execute(self, context):
-        return main(self, context)
+
+        return main(self, context,
+                    self.prop_tex_size,
+                    supersample=self.prop_supersampling,
+                    inflate_iterations=self.prop_inflate_iterations,
+                    custom_file_path=self.prop_custom_file_path)
 
 # ---- REGISTRATION ----
 
