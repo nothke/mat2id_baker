@@ -133,24 +133,56 @@ def main(self, context,
     #      1, 1, 1,
     #      1, 1, 1), 1, 0))
 
+    def clamp(n): return max(0, min(n, size))
+
+    arr = numpy.array(img)
+
+    #vals = []
     if inflate_iterations > 0:
-        img_max = img
+        for _ in range(inflate_iterations):
+            src = arr.copy()
 
-        for i in range(inflate_iterations):
-            img_max = img_max.filter(ImageFilter.MaxFilter(3))
+            # Slow! TODO: Convert to numpy array operators..?
+            for y in range(size):
+                for x in range(size):
 
-        arr = numpy.array(img)
-        arr_max = numpy.array(img_max)
+                    # skip if pixel is opaque
+                    if arr[x, y, 3] > 5:
+                        continue
 
-        # Slow! TODO: Convert to numpy array operators
-        for y in range(size):
-            for x in range(size):
-                # if alpha is 0 and inflated's alpha is more than 0
-                if arr[x, y, 3] == 0 and arr_max[x, y, 3] > 0:
-                    # set pixel to inflated
-                    arr[x, y] = arr_max[x, y]
-                    # set alpha to max
-                    arr[x, y, 3] = 255
+                    # make this pixel the average of all neightbors that have alpha > 0
+                    #vals.clear()
+                    vals = []
+
+                    startx = x-1 if x > 0 else 0
+                    endx = x+2 if x < size-1 else size-1
+
+                    starty = y-1 if y > 0 else 0
+                    endy = y+2 if y < size-1 else size-1
+
+                    if x == 104 and y == 8:
+                        print("startx: %i, endx: %i", (startx, endx))
+                        print("starty: %i, endy: %i", (starty, endy))
+                        print(vals)
+                        print(str(len(arr[x, y])))
+
+                    for yi in range(starty, endy):
+                        for xi in range(startx, endx):
+                            # skip if center pixel
+                            if xi == x and yi == y:
+                                continue
+
+                            # if opaque, add pixel for averaging
+                            if src[xi, yi, 3] > 5:
+                                vals.append(src[xi, yi])
+
+                    if len(vals) > 0:
+                        arr[x, y] = vals[0]  # numpy.average(vals)
+                        # force opaqufy
+                        arr[x, y, 3] = 255
+
+                    if x == 104 and y == 8:
+                        print(vals)
 
         # converted for loop to numpy:
         # comp = numpy.logical_and(arr[:, :, 3] == 0, arr_max[:, :, 3] > 0)
@@ -199,7 +231,7 @@ class NOTHKE_OT_mat2id_baker(bpy.types.Operator):
     prop_supersampling: bpy.props.IntProperty(
         name="Supersampling", default=0, description="Effectively supersampling-antialiasing. Doubles the size of the drawing texture that will get scaled down to Texture Size at the end.")
     prop_inflate_iterations: bpy.props.IntProperty(
-        name="Inflate Iterations", default=3)
+        name="Inflate Iterations", default=1)
 
     @classmethod
     def poll(cls, context):
