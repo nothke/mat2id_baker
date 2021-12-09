@@ -1,24 +1,25 @@
 # By Nothke
 
+import time
+from PIL import Image, ImageDraw, ImageFilter
+import numpy
+from numpy.core.fromnumeric import repeat
+from mathutils import Color
+import bpy
 bl_info = {
     "name": "Mat2id Baker",
     "description": "Bakes material to id map without Cycles.",
     "author": "Nothke",
     "category": "Object",
     "blender": (2, 80, 0),
-#    "location": "Object > Apply > Unity Rotation Fix",
+    #    "location": "Object > Apply > Unity Rotation Fix",
 }
 
-import bpy
-from mathutils import Color
-
-from PIL import Image, ImageDraw, ImageFilter
-import time
 
 # ---- PROPERTIES ----
-tex_size = 256
+tex_size = 512
 file_path = "baked_test.png"
-supersample = 2
+supersample = 0
 
 
 # ---- CODE ----
@@ -64,7 +65,7 @@ def main(self, context):
     for i in range(supersample):
         size *= 2
 
-    img = Image.new('RGB', (size, size), color='black')
+    img = Image.new('RGBA', (size, size), color=(0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
 
     selected_objects = []
@@ -80,7 +81,8 @@ def main(self, context):
     for obj in selected_objects:
         mats = obj.data.materials
         if len(mats) == 0:
-            self.report({'ERROR'}, "Object %s has no materials" % (obj.name))
+            self.report(
+                {'ERROR'}, "Cannot bake, object %s has no materials" % (obj.name))
             return {"CANCELLED"}
 
     for obj in selected_objects:
@@ -94,7 +96,7 @@ def main(self, context):
         for mat in mats:
             col = get_material_color(mat)
             mat_colors.append(
-                (int(col[0] * 255), int(col[1] * 255), int(col[2] * 255)))
+                (int(col[0] * 255), int(col[1] * 255), int(col[2] * 255), 255))
 
         # Render each polygon on the texture
         for poly in obj.data.polygons:
@@ -114,18 +116,55 @@ def main(self, context):
 
     #img_blurred = img.filter(ImageFilter.GaussianBlur(radius=6))
     #img = img_blurred
-    #img = Image.blend(img, img_blurred, 0.5)
+
+    # img = Image.blend(img, img_blurred, 0.5)
+
+    # for y in range(size):
+    #     for x in range(size):
+    #         if img.getpixel((x,y))[0] < 10:
+    #             img.putpixel((x, y), (255,255,255))
+
+    # for i in range(10):
+    #     img = img.filter(ImageFilter.MaxFilter(3))
+
+    # img = img.filter(ImageFilter.Kernel((3, 3),
+    #     (1, 1, 1,
+    #      1, 1, 1,
+    #      1, 1, 1), 1, 0))
+
+    img_max = img
+
+    for i in range(5):
+        img_max = img_max.filter(ImageFilter.MaxFilter(3))
+
+    arr = numpy.array(img)
+    arr_max = numpy.array(img_max)
+
+    #comp = numpy.logical_and(arr[:, :, 3] == 0, arr_max[:, :, 3] > 0)
+    #arr[:,:] = comp * arr_max #bad?
+
+    for y in range(size):
+        for x in range(size):
+            if arr[x, y, 3] == 0 and arr_max[x, y, 3] > 0:
+                arr[x, y] = arr_max[x, y]
+                arr[x, y, 3] = 255
+
+    arr[:,:,3] = 255
+
+    img = Image.fromarray(arr)
 
     img = img.resize((tex_size, tex_size), resample=Image.BICUBIC)
 
     # img.show()
     img.save(folder_path + file_path, "PNG")
 
-    self.report({'INFO'}, "Finished baking id texture in %s seconds" % (time.time() - start_time))
+    self.report({'INFO'}, "Finished baking id texture in %s seconds" %
+                (time.time() - start_time))
 
     return {'FINISHED'}
 
 # ---- BLENDER ----
+
 
 class NOTHKE_OT_mat2id_baker(bpy.types.Operator):
     """Bakes material colors to id texture without Cycles"""
@@ -142,20 +181,24 @@ class NOTHKE_OT_mat2id_baker(bpy.types.Operator):
 
 # ---- REGISTRATION ----
 
+
 def menu_draw(self, context):
     layout = self.layout
     layout.operator("object.mat2id_baker", text="Mat2id Baker")
+
 
 def register():
     bpy.utils.register_class(NOTHKE_OT_mat2id_baker)
     bpy.types.VIEW3D_MT_object_apply.append(menu_draw)
 
+
 def unregister():
     bpy.utils.unregister_class(NOTHKE_OT_mat2id_baker)
     bpy.types.VIEW3D_MT_object_apply.remove(menu_draw)
+
 
 if __name__ == "__main__":
     register()
 
 # test call
-#bpy.ops.object.mat2id_baker()
+# bpy.ops.object.mat2id_baker()
