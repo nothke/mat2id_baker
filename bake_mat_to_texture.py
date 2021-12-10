@@ -1,6 +1,15 @@
 # By Nothke
 
-print("-------------- MAT2ID START ------------")
+bl_info = {
+    "name": "Mat2id Baker",
+    "description": "Bakes material to id map without Cycles.",
+    "author": "Nothke",
+    "category": "Object",
+    "blender": (2, 80, 0),
+    #    "location": "Object > Apply > Unity Rotation Fix",
+}
+
+print("------------ MAT2ID START ------------")
 
 import bpy
 import sys
@@ -12,7 +21,8 @@ import time
 import pathlib
 from os.path import dirname, join
 
-# FOR CYTHON:
+# # IF USING CYTHON:
+# # WARNING: this is a fixed location, TODO: change it so it finds the package instead
 # module_dir = "C:\\Projects\\py\\nothkes_id_baker"
 # if not module_dir in sys.path:
 #     sys.path.append(module_dir)
@@ -20,20 +30,10 @@ from os.path import dirname, join
 # pyximport.install()
 # import texture_dilate
 
-bl_info = {
-    "name": "Mat2id Baker",
-    "description": "Bakes material to id map without Cycles.",
-    "author": "Nothke",
-    "category": "Object",
-    "blender": (2, 80, 0),
-    #    "location": "Object > Apply > Unity Rotation Fix",
-}
-
 
 # ---- CODE ----
 
 # static functions:
-
 
 def get_material_color(mat):
     # TODO: Handle exceptions if material is not good here
@@ -115,15 +115,10 @@ def main(self, context,
 
         # Render each polygon on the texture
         for poly in obj.data.polygons:
-            #print("Polygon index: %d, length: %d" % (poly.index, poly.loop_total))
-            #print("Loop index: %d" % (poly.material_index))
             col = mat_colors[poly.material_index]
-            #print("Color: " + str(mat_colors[poly.material_index]))
 
             uvs = []
             for loop_index in range(poly.loop_start, poly.loop_start + poly.loop_total):
-                #print("    Vertex: %d" % me.loops[loop_index].vertex_index)
-                #print("    UV: %r" % uv_layer[loop_index].uv)
                 uv = uv_layer[loop_index].uv
                 uvs.append((uv.x * size, uv.y * size))
 
@@ -147,11 +142,11 @@ def main(self, context,
                     if arr[x, y, 3] > 5:
                         continue
 
-                    startx = x-1 if x > 0 else 0
-                    endx = x+2 if x < size-1 else size-1
+                    startx = x - 1 if x > 0 else 0
+                    endx = x + 2 if x < size - 1 else size - 1
 
-                    starty = y-1 if y > 0 else 0
-                    endy = y+2 if y < size-1 else size-1
+                    starty = y - 1 if y > 0 else 0
+                    endy = y + 2 if y < size - 1 else size - 1
 
                     for yi in range(starty, endy):
                         for xi in range(startx, endx):
@@ -170,8 +165,8 @@ def main(self, context,
 
                     if bail:
                         continue
-        
-        # with cython:
+
+        # IF USING CYTHON:
         # arr = texture_dilate.process(arr, size, inflate_iterations)
 
         arr[:, :, 3] = 255
