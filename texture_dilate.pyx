@@ -1,10 +1,12 @@
 import numpy as np
 
-def process(arr, size, inflate_iterations):
+def process(unsigned char[:,:,::1] arr, int size, int inflate_iterations):
     # arr is RGBA image array
     # size is dimension of the image
+    cdef int i, x, y, xi, yi, startx, starty, endx, endy, bail
+    cdef unsigned char[:,:,::1] src
 
-    for _ in range(inflate_iterations):
+    for i in range(inflate_iterations):
         src = arr.copy()
 
         for y in range(size):
@@ -29,7 +31,10 @@ def process(arr, size, inflate_iterations):
 
                         # when an opaque pixel is encountered, color this pixel the same
                         if src[xi, yi, 3] > 5:
-                            arr[x, y] = src[xi, yi]
+                            arr[x, y, 0] = src[xi, yi, 0]
+                            arr[x, y, 1] = src[xi, yi, 1]
+                            arr[x, y, 2] = src[xi, yi, 2]
+                            arr[x, y, 3] = src[xi, yi, 3]
                             bail = True
                             continue
                     
@@ -39,4 +44,4 @@ def process(arr, size, inflate_iterations):
                 if bail:
                     continue
 
-    return arr
+    return np.asarray(arr)

@@ -1,11 +1,25 @@
 # By Nothke
 
+print("-------------- MAT2ID START ------------")
+
 import bpy
+import sys
 from mathutils import Color
 from numpy.core.fromnumeric import repeat
 import numpy
 from PIL import Image, ImageDraw, ImageFilter
 import time
+import pathlib
+from os.path import dirname, join
+
+# FOR CYTHON:
+# module_dir = "C:\\Projects\\py\\nothkes_id_baker"
+# if not module_dir in sys.path:
+#     sys.path.append(module_dir)
+# import pyximport
+# pyximport.install()
+# import texture_dilate
+
 bl_info = {
     "name": "Mat2id Baker",
     "description": "Bakes material to id map without Cycles.",
@@ -115,34 +129,16 @@ def main(self, context,
 
             draw.polygon(uvs, fill=col)
 
-    #img_blurred = img.filter(ImageFilter.GaussianBlur(radius=6))
-    #img = img_blurred
-
-    # img = Image.blend(img, img_blurred, 0.5)
-
-    # for y in range(size):
-    #     for x in range(size):
-    #         if img.getpixel((x,y))[0] < 10:
-    #             img.putpixel((x, y), (255,255,255))
-
-    # for i in range(10):
-    #     img = img.filter(ImageFilter.MaxFilter(3))
-
-    # img = img.filter(ImageFilter.Kernel((3, 3),
-    #     (1, 1, 1,
-    #      1, 1, 1,
-    #      1, 1, 1), 1, 0))
-
     def clamp(n): return max(0, min(n, size))
 
     arr = numpy.array(img)
 
-    #vals = []
+    # Slow! TODO: Convert to numpy array operators..?
     if inflate_iterations > 0:
+        # without cython:
         for _ in range(inflate_iterations):
             src = arr.copy()
 
-            # Slow! TODO: Convert to numpy array operators..?
             for y in range(size):
                 for x in range(size):
                     bail = False
@@ -151,21 +147,11 @@ def main(self, context,
                     if arr[x, y, 3] > 5:
                         continue
 
-                    # make this pixel the average of all neightbors that have alpha > 0
-                    # vals.clear()
-                    #vals = []
-
                     startx = x-1 if x > 0 else 0
                     endx = x+2 if x < size-1 else size-1
 
                     starty = y-1 if y > 0 else 0
                     endy = y+2 if y < size-1 else size-1
-
-                    # if x == 104 and y == 8:
-                    #     print("startx: %i, endx: %i", (startx, endx))
-                    #     print("starty: %i, endy: %i", (starty, endy))
-                    #     print(vals)
-                    #     print(str(len(arr[x, y])))
 
                     for yi in range(starty, endy):
                         for xi in range(startx, endx):
@@ -173,30 +159,20 @@ def main(self, context,
                             if xi == x and yi == y:
                                 continue
 
-                            # if opaque, add pixel for averaging
+                            # when an opaque pixel is encountered, color this pixel the same
                             if src[xi, yi, 3] > 5:
-                                #vals.append(src[xi, yi])
                                 arr[x, y] = src[xi, yi]
                                 bail = True
                                 continue
-                        
+
                         if bail:
                             continue
-                    
+
                     if bail:
                         continue
-
-                    # if len(vals) > 0:
-                    #     arr[x, y] = vals[0]  # numpy.average(vals)
-                    #     # force opaqufy
-                    #     arr[x, y, 3] = 255
-
-                    # if x == 104 and y == 8:
-                    #     print(vals)
-
-        # converted for loop to numpy:
-        # comp = numpy.logical_and(arr[:, :, 3] == 0, arr_max[:, :, 3] > 0)
-        # arr[:,:] = comp * arr_max #bad?
+        
+        # with cython:
+        # arr = texture_dilate.process(arr, size, inflate_iterations)
 
         arr[:, :, 3] = 255
 
