@@ -206,12 +206,12 @@ class NOTHKE_OT_mat2id_baker(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     # Properties
-    prop_custom_file_path: bpy.props.StringProperty(
+    custom_file_path: bpy.props.StringProperty(
         name="Custom File Path", default="", description="If empty, the path will be .blend_folder/active_object's_name.png")
-    prop_tex_size: bpy.props.IntProperty(name="Texture Size", default=512)
-    prop_supersampling: bpy.props.IntProperty(
+    tex_size: bpy.props.IntProperty(name="Texture Size", default=512)
+    supersampling: bpy.props.IntProperty(
         name="Supersampling", default=0, description="Effectively supersampling-antialiasing. Doubles the size of the drawing texture that will get scaled down to Texture Size at the end.")
-    prop_inflate_iterations: bpy.props.IntProperty(
+    inflate_iterations: bpy.props.IntProperty(
         name="Inflate Iterations", default=1)
 
     @classmethod
@@ -221,10 +221,10 @@ class NOTHKE_OT_mat2id_baker(bpy.types.Operator):
     def execute(self, context):
 
         return main(self, context,
-                    self.prop_tex_size,
-                    supersample=self.prop_supersampling,
-                    inflate_iterations=self.prop_inflate_iterations,
-                    custom_file_path=self.prop_custom_file_path)
+                    self.tex_size,
+                    supersample=self.supersampling,
+                    inflate_iterations=self.inflate_iterations,
+                    custom_file_path=self.custom_file_path)
 
 # ---- REGISTRATION ----
 
