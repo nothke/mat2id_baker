@@ -1,1 +1,4 @@
 test.png
+build/
+*.c
+*.pyd
