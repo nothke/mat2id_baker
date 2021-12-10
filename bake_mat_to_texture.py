@@ -192,7 +192,7 @@ def main(self, context,
     if custom_file_path:
         file_path = custom_file_path
     else:
-        file_path = folder_path + context.active_object.name + ".png"
+        file_path = folder_path + context.active_object.name + "_id.png"
 
     img.save(file_path, "PNG")
 
