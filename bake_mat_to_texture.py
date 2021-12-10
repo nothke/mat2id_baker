@@ -20,6 +20,7 @@ from PIL import Image, ImageDraw, ImageFilter
 import time
 import pathlib
 from os.path import dirname, join
+import math
 
 # # IF USING CYTHON:
 # # WARNING: this is a fixed location, TODO: change it so it finds the package instead
@@ -110,6 +111,11 @@ def main(self, context,
 
         for mat in mats:
             col = get_material_color(mat)
+
+            for ci in range(3):
+                # apply gamma to convert to srgb
+                col[ci] = col[ci]**(1/2.2)
+
             mat_colors.append(
                 (int(col[0] * 255), int(col[1] * 255), int(col[2] * 255), 255))
 
@@ -120,7 +126,7 @@ def main(self, context,
             uvs = []
             for loop_index in range(poly.loop_start, poly.loop_start + poly.loop_total):
                 uv = uv_layer[loop_index].uv
-                uvs.append((uv.x * size, uv.y * size))
+                uvs.append((uv.x * size, (1 - uv.y) * size))
 
             draw.polygon(uvs, fill=col)
 
