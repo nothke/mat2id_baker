@@ -11,45 +11,22 @@ bl_info = {
 
 print("------------ MAT2ID START ------------")
 
-import sys
-#from os.path import dirname, join
-import os
-import subprocess
-
-# path to python.exe
-python_exe = os.path.join(sys.prefix, 'bin', 'python.exe')
-
-cmd = [python_exe, "ensurepip", "--upgrade", "--user"]
-pip = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-pillow_str = "pillow"  # "Pillow==%s" % (version)
-
-cmd = [python_exe, "-m", "pip", "install", "--upgrade", "--user", pillow_str]
-pil = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-print("Getting shit")
-print("pil out: ", pil)
-
-# upgrade pip
-# subprocess.call([python_exe, "-m", "ensurepip"])
-# subprocess.call([python_exe, "-m", "pip", "install", "--upgrade", "pip"])
-
-# install pillow
-# subprocess.call([python_exe, "-m", "pip", "install", "pillow"])
-
 import bpy
 from mathutils import Color
 from numpy.core.fromnumeric import repeat
 import numpy
 from PIL import Image, ImageDraw, ImageFilter
 import time
-import pathlib
-import math
 
 print("After import")
 
 # # IF USING CYTHON:
 # # WARNING: this is a fixed location, TODO: change it so it finds the package instead
+# import sys
+# from os.path import dirname, join
+# import pathlib
+# import math
+#
 # module_dir = "C:\\Projects\\py\\nothkes_id_baker"
 # if not module_dir in sys.path:
 #     sys.path.append(module_dir)
