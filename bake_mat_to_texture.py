@@ -11,16 +11,42 @@ bl_info = {
 
 print("------------ MAT2ID START ------------")
 
-import bpy
 import sys
+#from os.path import dirname, join
+import os
+import subprocess
+
+# path to python.exe
+python_exe = os.path.join(sys.prefix, 'bin', 'python.exe')
+
+cmd = [python_exe, "ensurepip", "--upgrade", "--user"]
+pip = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+pillow_str = "pillow"  # "Pillow==%s" % (version)
+
+cmd = [python_exe, "-m", "pip", "install", "--upgrade", "--user", pillow_str]
+pil = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+print("Getting shit")
+print("pil out: ", pil)
+
+# upgrade pip
+# subprocess.call([python_exe, "-m", "ensurepip"])
+# subprocess.call([python_exe, "-m", "pip", "install", "--upgrade", "pip"])
+
+# install pillow
+# subprocess.call([python_exe, "-m", "pip", "install", "pillow"])
+
+import bpy
 from mathutils import Color
 from numpy.core.fromnumeric import repeat
 import numpy
 from PIL import Image, ImageDraw, ImageFilter
 import time
 import pathlib
-from os.path import dirname, join
 import math
+
+print("After import")
 
 # # IF USING CYTHON:
 # # WARNING: this is a fixed location, TODO: change it so it finds the package instead
@@ -38,8 +64,21 @@ import math
 
 def get_material_color(mat):
     # TODO: Handle exceptions if material is not good here
+    if not mat.node_tree:
+        print("Material: " + mat.name + " does not have a node_tree")
+        return Color((0, 0, 0))
+
     nodes = mat.node_tree.nodes
     principled = next(n for n in nodes if n.type == 'BSDF_PRINCIPLED')
+
+    if not principled:
+        print("Material " + mat.name + " does not have a BSDF_PRINCIPLED")
+        return Color((0, 0, 0))
+
+    if not principled.inputs['Base Color']:
+        print("Material " + mat.name + " does not have a Base_Color")
+        return Color((0, 0, 0))
+
     # Get the slot for 'base color'
     base_color = principled.inputs['Base Color']  # Or principled.inputs[0]
     # Get its default value (not the value from a possible link)
@@ -114,7 +153,7 @@ def main(self, context,
 
             for ci in range(3):
                 # apply gamma to convert to srgb
-                col[ci] = col[ci]**(1/2.2)
+                col[ci] = col[ci]**(1 / 2.2)
 
             mat_colors.append(
                 (int(col[0] * 255), int(col[1] * 255), int(col[2] * 255), 255))
